@@ -77,7 +77,6 @@ class tk_layout:
         else:
             self.storage_list = list() #empty this out
             self.startstop_string.set("Stop")
-
         self.stopwatch.toggle(self.time_string, self.microseconds)
 
     def Quit(self):
@@ -131,6 +130,7 @@ class tk_layout:
             bits = self.process_bits(bits)
             for i in range(0,len(bits)):
                 servo, angle = bits[i]['pos_str'].split()
+                print bits[i]['delta']
                 time.sleep(bits[i]['delta'])
                 self.ServoMove(int(servo), int(angle))
 
