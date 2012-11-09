@@ -3,22 +3,19 @@
 import os
 import re
 import sys
-import time
-import serial
-from itertools import groupby
 import Tkinter
 import tkMessageBox
 import recorder_handlers
 from ConfigParser import *
+import serial
 
 # Handles the layout of the root window
 class tk_layout:
-    def __init__(self, parent, stopwatch, ser):
+    def __init__(self, parent, stopwatch):
         parent.title("recorder")
         self.parent = parent
         tk = Tkinter
         self.stopwatch = stopwatch
-        self.ser = ser
 
 	self.sp1 = tk.Label(self.parent)
 	self.sp1.grid(row=0)
@@ -67,15 +64,12 @@ class tk_layout:
         self.LoadIniData()
         self.ListFiles()
         self.storage_list = list()
-        self.joymap = [3,4,1,2] # link between joystick and the servo to move
-        self.joyreverse = [0,1,0,0,0]
 
     # Toggle stopwatch state
     def toggle(self):
         if self.stopwatch.running:
             self.startstop_string.set("Start")
         else:
-            self.storage_list = list() #empty this out
             self.startstop_string.set("Stop")
 
         self.stopwatch.toggle(self.time_string, self.microseconds)
@@ -94,50 +88,11 @@ class tk_layout:
             raise Exception,'NoFileError'
         return
 
-    def process_bits(self,rows):
-        # this removes duplicates, easy. 
-        rows = [ key for key,_ in groupby(rows)]
-        l = {}
-        for i in range(0,len(rows)):
-            l[i] = {}
-            t, l[i]['pos_str'] = rows[i].split(' ', 1)
-            seconds, useconds = t.split(':')
-            l[i]['time'] = float("%2.6lf" % float(seconds + "." + useconds))
-
-        pos_old = l[0]['pos_str']
-        t_old = l[0]['time']
-        new = {}
-        count = 0
-        for i in range(1,len(rows)):
-            pos = l[i]['pos_str']
-            t = l[i]['time']
-            if pos != pos_old:
-                new[count] = {}
-                new[count]['delta'] = l[i]['time'] - t_old
-                new[count]['pos_str'] = pos_old
-                pos_old = pos
-                t_old = t
-                count = count + 1
-        new[count] = {}
-        new[count]['delta'] = l[i]['time'] - t_old
-        new[count]['pos_str'] = pos_old
-        return new
-
     def PlayBack(self):
-        bits = self.storage_list
-        if len(bits) == 0:
-            print "nothing recorded"
-        else:
-            bits = self.process_bits(bits)
-            for i in range(0,len(bits)):
-                servo, angle = bits[i]['pos_str'].split()
-                time.sleep(bits[i]['delta'])
-                self.ServoMove(int(servo), int(angle))
+        for row in self.storage_list:
+            print "row " + row
 
     def ServoMove(self,servo, angle):
-        servo = self.joymap[servo]
-        if self.joyreverse[servo]:
-            angle = 180 - angle
         if (0 <= angle <= 180):
             self.ser.write(chr(255))
             self.ser.write(chr(servo))
@@ -152,20 +107,19 @@ class tk_layout:
         self.listbox1.delete(0, tk.END)
         dirlist = os.listdir(dir)
         for file in dirlist:
-            if os.path.isfile(dir + file):
-                fin = open(dir + file, "r")
-                for line in fin.readlines():
-                    name = line.rstrip('\n') + " :: " + file
-                    break
-                self.listbox1.insert(tk.END, name)
+            fin = open(dir + file, "r")
+            for line in fin.readlines():
+                name = line.rstrip('\n') + " :: " + file
+                break
+            self.listbox1.insert(tk.END, name)
         return
 
 if __name__ == "__main__":
     usbport = '/dev/ttyUSB0'
     # Set up serial baud rate
     ser = serial.Serial(usbport, 9600, timeout=1)
-    tk = Tkinter.Tk()
+    tk = Tkinter.Tk(ser)
     watch = recorder_handlers.Stopwatch()
-    tkwin = tk_layout(tk, watch, ser)
+    tkwin = tk_layout(tk, watch)
     recorder_handlers.Joystick(tkwin)
     tk.mainloop()

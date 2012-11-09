@@ -56,70 +56,76 @@ class StopwatchThread(Thread):
                 break
 
 class Joystick:
-	def __init__(self, root):
-                self.root = root
-		## initialize pygame and joystick
-		pygame.init()
-		if(pygame.joystick.get_count() < 1):
-			# no joysticks found
-			print "Please connect a joystick.\n"
-			self.Quit()
-		else:
-			# create joystick object from first joystick in list
-			Joy0 = pygame.joystick.Joystick(0)
-			Joy0.init()
+    def __init__(self, root):
+        self.root = root
+    	## initialize pygame and joystick
 
-		## all this call back stuff makes no sense to me. 
-                self.root.parent.bind("<<JoyFoo>>", self.my_event_callback)
-		## start looking for events
-		self.root.parent.after(0, self.find_events)
+    	pygame.init()
+    	if(pygame.joystick.get_count() < 1):
+    		# no joysticks found
+    		print "Please connect a joystick.\n"
+    		self.Quit()
+    	else:
+    		# create joystick object from first joystick in list
+    		Joy0 = pygame.joystick.Joystick(0)
+    		Joy0.init()
 
-	def load_string(self,s,num,pos):
-            pos = '%3s' % (int(90 + round(pos * 90, 0)))
-            t = re.sub(r'^ *',"",s.get())
-	    t = re.sub(r'  *'," ",t)
-	    pos = re.sub(r' '," ",pos)
-	    words = t.split(' ')
-	    str = ""
-	    for i in range(0, 4):
-	    	if (i == num):
-	    		x = '%3s' % pos
-	    	else:
-	    		x = '%3s' % words[i]
-	    	x = re.sub(r' ',"0",x)
-	    	str = str + x + ' '
-	    str = re.sub(r' *$',"",str)
-            s.set(str)
+    	## all this call back stuff makes no sense to me. 
+        self.root.parent.bind("<<JoyFoo>>", self.my_event_callback)
+    	## start looking for events
+        self.root.parent.after(0, self.find_events)
 
-	def find_events(self):
-            events = pygame.event.get()
-            for e in events:
-                if e.type == pygame.JOYBUTTONDOWN:
-                    # generate the event I've defined
-                    # self.root.event_generate("<<JoyFoo>>")
-                    if (e.dict['button'] == 6):
-                        self.root.toggle()
-                    if (e.dict['button'] == 5):
-                        print "replaying"
-                        self.root.PlayBack()
-                if e.type == pygame.JOYAXISMOTION:
-                    pos = e.dict['value']
-                    n = e.dict['axis']
-                    if (n >= 0 and n < 5):
-                        # constructs the string that reflects joystick
-                        #  position
-                        self.load_string(self.root.servo_string,n,pos)
-                        # if we're in recording mode, save to disk
-                        if self.root.stopwatch.running: 
-                            thing = "%s %s" % (self.root.time_string.get(), 
-                                               self.root.servo_string.get())
-                            self.root.storage_list.append(thing)
-                            # print thing
+    def load_string(self,s,num,pos):
+        pos = '%3s' % (pos)
+        t = re.sub(r'^ *',"",s.get())
+        t = re.sub(r'  *'," ",t)
+        pos = re.sub(r' '," ",pos)
+        words = t.split(' ')
+        str = ""
+        for i in range(0, 4):
+        	if (i == num):
+        		x = '%3s' % pos
+        	else:
+        		x = '%3s' % words[i]
+        	x = re.sub(r' ',"0",x)
+        	str = str + x + ' '
+        str = re.sub(r' *$',"",str)
+        s.set(str)
 
-	    ## return to check for more events in a moment
-            self.root.parent.after(20, self.find_events)
+    def find_events(self):
+        events = pygame.event.get()
+        for e in events:
+            if e.type == pygame.JOYBUTTONDOWN:
+                # generate the event I've defined
+                # self.root.event_generate("<<JoyFoo>>")
+                print e.dict['button']
+                if (e.dict['button'] == 5):
+                    print "toggling"
+                    self.root.toggle()
+                if (e.dict['button'] == 7):
+                    print "replaying"
+                    self.root.PlayBack()
+            if e.type == pygame.JOYAXISMOTION:
+                pos = e.dict['value']
+                pos = int(90 + round(pos * 90, 0))
+                n = e.dict['axis']
+                if (n >= 0 and n < 5):
+                    # constructs the string that reflects joystick
+                    #  position
+                    self.root.ServoMove(n,pos)
+                    self.load_string(self.root.servo_string,n,pos)
+                    # if we're in recording mode, save to disk
 
-	# I dont know what this does.
-        def my_event_callback(self, event):
-		print "Joystick button press (down) event"
+                    if self.root.stopwatch.running: 
+                        thing = "%s %d %d" % (self.root.time_string.get(), 
+                                           n, pos)
+                        self.root.storage_list.append(thing)
+                        # print thing
+
+        ## return to check for more events in a moment
+        self.root.parent.after(20, self.find_events)
+
+    # I dont know what this does.
+    def my_event_callback(self, event):
+        print "Joystick button press (down) event"
 
