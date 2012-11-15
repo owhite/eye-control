@@ -4,64 +4,72 @@ import pickle
 from random import randint
 
 class recording_data(object):
-    def __init__(self):
-        self.l = []
-
-    def make_fake_recording(self):
+    def __init__(self, file_name):
+        self.file = file_name
         l = []
-        for i in range(2,randint(2,100)):
-            s = '%d %d' % (randint(1,4), randint(0,180))
-            l.extend([s])
-        return l
-
-    def make_fake_list(self, inc):
-        self.l = {}
-        for i in range(2,inc):
-            data = self.make_fake_recording()
-            self.add('thing%d' % i, data)
+        l = {}
+        pickle.dump(l, open(self.file, "wb"))
 
     def add(self, name, data):
-        i = len(self.l)
-        self.l[i+1] = {} 
-        self.l[i+1]['name'] = name
-        self.l[i+1]['data'] = data
+        l = pickle.load(open(self.file, "rb"))
+        i = len(l)
+        l[i+1] = {} 
+        l[i+1]['name'] = name
+        l[i+1]['data'] = data
+        pickle.dump(l, open(self.file, "wb"))
 
     def dump(self):
-        for i in self.l:
-            print '%d %s' % (i, self.l[i]['name'])
-            print self.l[i]['data']
+        l = pickle.load(open(self.file, "rb"))
+        for i in l:
+            print '%d %s' % (i, l[i]['name'])
+            print l[i]['data']
 
     def retreive(self, n):
+        l = pickle.load(open(self.file, "rb"))
         r = 0
-        for i in self.l:
-            if n == self.l[i]['name']:
+        for i in l:
+            if n == l[i]['name']:
                 r = i
                 break
+        pickle.dump(l, open(self.file, "wb"))
         return(r)
 
     def get_names(self):
-        l = []
-        for i in self.l:
-            l.extend([self.l[i]['name']])
-        return(l)
+        l = pickle.load(open(self.file, "rb"))
+        j = []
+        for i in l:
+            j.extend([l[i]['name']])
+        return(j)
 
     def remove(self, n):
+        l = pickle.load(open(self.file, "rb"))
         r = self.retreive(n)
         if r:
             new = {}
             count = 0
-            for i in self.l:
+            for i in l:
                 if i != r:
                     new[count] = {} 
-                    new[count]['name'] = self.l[i]['name']
-                    new[count]['data'] = self.l[i]['data']
+                    new[count]['name'] = l[i]['name']
+                    new[count]['data'] = l[i]['data']
                     count = count + 1
-            self.l = []
-            self.l = new
+        pickle.dump(new, open(self.file, "wb"))
+
+def make_fake_recording():
+    l = []
+    for i in range(2,randint(2,10)):
+        s = '%d %d' % (randint(1,4), randint(0,180))
+        l.extend([s])
+    return l
+
+def make_fake_list(self, inc):
+    for i in range(2,inc):
+        data = make_fake_recording()
+        self.add('thing%d' % i, data)
 
 def main():
-    r = recording_data()
-    l = r.make_fake_list(10)
+    r = recording_data("r_file.txt")
+    l = make_fake_list(r,10)
     l = r.get_names()
     for i in l:
         print i
@@ -70,7 +78,6 @@ def main():
     l = r.get_names()
     for i in l:
         print i
-
 
 if __name__ == "__main__":
     main()
