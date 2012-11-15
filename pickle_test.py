@@ -3,7 +3,7 @@
 import pickle
 from random import randint
 
-class recording(object):
+class recording_data(object):
     def __init__(self):
         self.l = []
 
@@ -14,13 +14,17 @@ class recording(object):
             l.extend([s])
         return l
 
+    def add(self, name, data):
+        i = len(self.l)
+        self.l[i+1] = {} 
+        self.l[i+1]['name'] = name
+        self.l[i+1]['data'] = data
+
     def make_fake_list(self, inc):
         self.l = {}
         for i in range(2,inc):
             data = self.make_fake_recording()
-            self.l[i] = {} 
-            self.l[i]['name'] = 'thing%d' % i
-            self.l[i]['data'] = data
+            self.add('thing%d' % i, data)
 
     def dump_list(self):
         for i in self.l:
@@ -34,6 +38,12 @@ class recording(object):
                 r = i
                 break
         return(r)
+
+    def get_record_names(self):
+        l = []
+        for i in self.l:
+            l.extend([self.l[i]['name']])
+        return(l)
 
     def remove(self, n):
         r = self.retreive(n)
@@ -50,11 +60,17 @@ class recording(object):
             self.l = new
 
 def main():
-    r = recording()
+    r = recording_data()
     l = r.make_fake_list(10)
-    r.dump_list()
+    l = r.get_record_names()
+    for i in l:
+        print i
+    print 'remove thing 8'
     inc = r.remove('thing8')
-    r.dump_list()
+    l = r.get_record_names()
+    for i in l:
+        print i
+
 
 if __name__ == "__main__":
     main()
