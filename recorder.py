@@ -11,14 +11,18 @@ import tkMessageBox
 import recorder_handlers
 from ConfigParser import *
 
-# Handles the layout of the root window
-class tk_layout:
-    def __init__(self, parent, stopwatch, ser):
+# Handles the layout of the root window and lots of other stuff
+class app_setup:
+    def __init__(self, parent, stopwatch):
         parent.title("recorder")
         self.parent = parent
         tk = Tkinter
         self.stopwatch = stopwatch
-        self.ser = ser
+
+        # Initialize the things
+        self.LoadIniData()
+        usbport = self.cp.get('Variables', 'usbport')
+        self.ser = serial.Serial(usbport, 9600, timeout=1)
 
 	self.sp1 = tk.Label(self.parent)
 	self.sp1.grid(row=0)
@@ -40,7 +44,8 @@ class tk_layout:
 	# Listbox holds the recordings
 	self.listbox1 = tk.Listbox(self.parent, width=50, height=6)
 	self.listbox1.grid(row=3, column=0, columnspan=8)
-	self.listbox1.dir = './recordings/'
+	self.listbox1.dir = self.cp.get('Variables', 'recording_dir')
+        self.listbox1.bind('<ButtonRelease-1>', self.GetList)
 
 	# With a scrollbar
 	self.yscroll = tk.Scrollbar(self.parent, command=self.listbox1.yview, 
@@ -48,23 +53,34 @@ class tk_layout:
 	self.yscroll.grid(row=3, column=8, sticky=tk.N+tk.S)
 	self.listbox1.configure(yscrollcommand=self.yscroll.set)
 
+        # use entry widget to display/edit selection
+        self.enter1 = tk.Entry(self.parent, width=40, bg='yellow')
+        self.enter1.grid(row=4, column=0, sticky=tk.W, columnspan=6)
+
+        # pressing the return key will update edited line
+        self.enter1.bind('<Return>', self.SetList)
+
         # Toggle stopwatch
         self.bStartStop = tk.Button(self.parent, 
                                     textvariable=self.startstop_string, 
                                     command=self.toggle)
-        self.bStartStop.grid(row=4, column=0, sticky=tk.W)
+        self.bStartStop.grid(row=5, column=0, sticky=tk.W)
+
+        # Save file
+        self.bSave = tk.Button(self.parent, 
+                               text='Save',
+                               command=self.SaveFile)
+        self.bSave.grid(row=5, column=1, sticky=tk.W)
 
         # Reload the list of recordings
 	self.bList = tk.Button(self.parent, text='List', command=self.ListFiles())
-	self.bList.grid(row=4, column=1, sticky=tk.W)    
+	self.bList.grid(row=5, column=2, sticky=tk.W)    
 
         # Quit button
         self.bQuit = tk.Button(self.parent, text="Quit", 
                                fg="red", command=self.Quit)
-        self.bQuit.grid(row=4, column=7, sticky=tk.W)
+        self.bQuit.grid(row=5, column=7, sticky=tk.W)
 
-        # Initialize the things
-        self.LoadIniData()
         self.ListFiles()
         self.storage_list = list()
         self.joymap = [3,4,1,2] # link between joystick and the servo to move
@@ -78,6 +94,57 @@ class tk_layout:
             self.storage_list = list() #empty this out
             self.startstop_string.set("Stop")
         self.stopwatch.toggle(self.time_string, self.microseconds)
+
+    def SetList(self, event):
+        # inserts an edited line 
+        try:
+            index = self.listbox1.curselection()[0]
+            # delete old listbox line
+            self.listbox1.delete(index)
+        except IndexError:
+            index = tk.END
+        # insert edited item back into listbox1 at index
+        self.listbox1.insert(index, self.enter1.get())
+
+    def SortList(self):
+        tk = Tkinter
+        temp_list = list(self.listbox1.get(0, tk.END))
+        temp_list.sort(key=str.lower)
+        # delete contents of present listbox
+        self.listbox1.delete(0, tk.END)
+        # load listbox with sorted data
+        for item in temp_list:
+            self.listbox1.insert(tk.END, item)
+
+    # user selected something in listbox, move the name to entry widget
+    def GetList(self, event):
+        index = self.listbox1.curselection()[0]
+        # get the line's text
+        seltext = self.listbox1.get(index)
+        # delete previous text in enter1
+        self.enter1.delete(0, 50)
+        # now display the selected text
+        self.enter1.insert(0, seltext)
+
+    def SaveFile(self):
+        print "saving private file"
+        bits = self.storage_list
+        name = self.enter1.get()
+        if len(name) == 0:
+            print "pick a name"
+        else: 
+            if len(bits) == 0:
+                print "no recording, not saving"
+            else:
+                fpath = self.cp.get('Variables', 'recording_dir') + name
+                print fpath
+                with open(fpath, 'w') as file:
+                    file.write('[' + name + ']' + '\n')
+                    for i in range(0,len(bits)):
+                        print bits[i]
+                        file.write(bits[i] + '\n')
+                    file.close()
+                self.ListFiles()
 
     def Quit(self):
         self.stopwatch.stop(self.time_string, self.microseconds)
@@ -158,14 +225,11 @@ class tk_layout:
                     name = line.rstrip('\n') + " :: " + file
                     break
                 self.listbox1.insert(tk.END, name)
-        return
+        self.SortList()
 
 if __name__ == "__main__":
-    usbport = '/dev/ttyUSB0'
-    # Set up serial baud rate
-    ser = serial.Serial(usbport, 9600, timeout=1)
     tk = Tkinter.Tk()
     watch = recorder_handlers.Stopwatch()
-    tkwin = tk_layout(tk, watch, ser)
+    tkwin = app_setup(tk, watch)
     recorder_handlers.Joystick(tkwin)
     tk.mainloop()
