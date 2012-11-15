@@ -14,19 +14,19 @@ class recording_data(object):
             l.extend([s])
         return l
 
-    def add(self, name, data):
-        i = len(self.l)
-        self.l[i+1] = {} 
-        self.l[i+1]['name'] = name
-        self.l[i+1]['data'] = data
-
     def make_fake_list(self, inc):
         self.l = {}
         for i in range(2,inc):
             data = self.make_fake_recording()
             self.add('thing%d' % i, data)
 
-    def dump_list(self):
+    def add(self, name, data):
+        i = len(self.l)
+        self.l[i+1] = {} 
+        self.l[i+1]['name'] = name
+        self.l[i+1]['data'] = data
+
+    def dump(self):
         for i in self.l:
             print '%d %s' % (i, self.l[i]['name'])
             print self.l[i]['data']
@@ -39,7 +39,7 @@ class recording_data(object):
                 break
         return(r)
 
-    def get_record_names(self):
+    def get_names(self):
         l = []
         for i in self.l:
             l.extend([self.l[i]['name']])
@@ -62,12 +62,12 @@ class recording_data(object):
 def main():
     r = recording_data()
     l = r.make_fake_list(10)
-    l = r.get_record_names()
+    l = r.get_names()
     for i in l:
         print i
     print 'remove thing 8'
     inc = r.remove('thing8')
-    l = r.get_record_names()
+    l = r.get_names()
     for i in l:
         print i
 
