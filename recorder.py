@@ -13,16 +13,19 @@ from ConfigParser import *
 
 # Handles the layout of the root window and lots of other stuff
 class app_setup:
-    def __init__(self, parent, stopwatch):
+    def __init__(self, parent):
         parent.title("recorder")
         self.parent = parent
         tk = Tkinter
-        self.stopwatch = stopwatch
 
         # Initialize the things
         self.LoadIniData()
         usbport = self.cp.get('Variables', 'usbport')
         self.ser = serial.Serial(usbport, 9600, timeout=1)
+        f = self.cp.get('Variables', 'recording_file')
+
+        self.stopwatch = recorder_handlers.Stopwatch()
+        self.rdata = recorder_handlers.RecordingData(f)
 
 	self.sp1 = tk.Label(self.parent)
 	self.sp1.grid(row=0)
@@ -44,7 +47,6 @@ class app_setup:
 	# Listbox holds the recordings
 	self.listbox1 = tk.Listbox(self.parent, width=50, height=6)
 	self.listbox1.grid(row=3, column=0, columnspan=8)
-	self.listbox1.dir = self.cp.get('Variables', 'recording_dir')
         self.listbox1.bind('<ButtonRelease-1>', self.GetList)
 
 	# With a scrollbar
@@ -73,7 +75,8 @@ class app_setup:
         self.bSave.grid(row=5, column=1, sticky=tk.W)
 
         # Reload the list of recordings
-	self.bList = tk.Button(self.parent, text='List', command=self.ListFiles())
+	self.bList = tk.Button(self.parent, text='List', 
+                               command=self.ListFiles)
 	self.bList.grid(row=5, column=2, sticky=tk.W)    
 
         # Quit button
@@ -85,6 +88,9 @@ class app_setup:
         self.storage_list = list()
         self.joymap = [3,4,1,2] # link between joystick and the servo to move
         self.joyreverse = [0,1,0,0,0]
+
+        recorder_handlers.Joystick(self)
+
 
     # Toggle stopwatch state
     def toggle(self):
@@ -160,7 +166,7 @@ class app_setup:
             raise Exception,'NoFileError'
         return
 
-    def process_bits(self,rows):
+    def ProcessBits(self,rows):
         # this removes duplicates, easy. 
         rows = [ key for key,_ in groupby(rows)]
         l = {}
@@ -194,7 +200,7 @@ class app_setup:
         if len(bits) == 0:
             print "nothing recorded"
         else:
-            bits = self.process_bits(bits)
+            bits = self.ProcessBits(bits)
             for i in range(0,len(bits)):
                 servo, angle = bits[i]['pos_str'].split()
                 print bits[i]['delta']
@@ -215,21 +221,19 @@ class app_setup:
     def ListFiles(self):
         tk = Tkinter
         # delete contents of present listbox
-        dir = self.listbox1.dir
+        # dir = self.listbox1.dir
         self.listbox1.delete(0, tk.END)
-        dirlist = os.listdir(dir)
-        for file in dirlist:
-            if os.path.isfile(dir + file):
-                fin = open(dir + file, "r")
-                for line in fin.readlines():
-                    name = line.rstrip('\n') + " :: " + file
-                    break
-                self.listbox1.insert(tk.END, name)
+        l = self.rdata.get_names()
+        for i in l:
+            print i
+            self.listbox1.insert(tk.END, i)
         self.SortList()
 
-if __name__ == "__main__":
+
+def main():
     tk = Tkinter.Tk()
-    watch = recorder_handlers.Stopwatch()
-    tkwin = app_setup(tk, watch)
-    recorder_handlers.Joystick(tkwin)
+    tkwin = app_setup(tk)
     tk.mainloop()
+
+if __name__ == "__main__":
+    main()

@@ -3,6 +3,7 @@ import time, datetime
 import pygame
 import re
 import sys
+import pickle
 
 class Stopwatch:
     def __init__(self):
@@ -128,4 +129,60 @@ class Joystick:
     # I dont know what this does.
     def my_event_callback(self, event):
         print "Joystick button press (down) event"
+
+class RecordingData:
+    def __init__(self, file_name):
+        self.file = file_name
+        l = []
+        l = {}
+        l = pickle.load(open(self.file, "rb"))
+
+    def add(self, name, data):
+        l = pickle.load(open(self.file, "rb"))
+        i = len(l)
+        l[i+1] = {} 
+        l[i+1]['name'] = name
+        l[i+1]['data'] = data
+        pickle.dump(l, open(self.file, "wb"))
+
+    def dump(self):
+        l = pickle.load(open(self.file, "rb"))
+        for i in l:
+            print '%d %s' % (i, l[i]['name'])
+            print l[i]['data']
+
+    def retreive(self, n):
+        l = pickle.load(open(self.file, "rb"))
+        r = 0
+        for i in l:
+            if n == l[i]['name']:
+                r = i
+                break
+        pickle.dump(l, open(self.file, "wb"))
+
+
+        return(r)
+
+    def get_names(self):
+        l = pickle.load(open(self.file, "rb"))
+        print self.file
+        print len(l)
+        j = []
+        for i in l:
+            j.extend([l[i]['name']])
+        return(j)
+
+    def remove(self, n):
+        l = pickle.load(open(self.file, "rb"))
+        r = self.retreive(n)
+        if r:
+            new = {}
+            count = 0
+            for i in l:
+                if i != r:
+                    new[count] = {} 
+                    new[count]['name'] = l[i]['name']
+                    new[count]['data'] = l[i]['data']
+                    count = count + 1
+        pickle.dump(new, open(self.file, "wb"))
 

@@ -57,7 +57,7 @@ class recording_data(object):
 
 def make_fake_recording():
     l = []
-    for i in range(2,randint(2,10)):
+    for i in range(2,randint(2,100)):
         s = '%d %d' % (randint(1,4), randint(0,180))
         l.extend([s])
     return l
