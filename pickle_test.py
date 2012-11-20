@@ -38,6 +38,7 @@ class recording_data(object):
         l = pickle.load(open(self.file, "rb"))
         j = []
         for i in l:
+            print l[i]['name']            
             j.extend([l[i]['name']])
         return(j)
 
@@ -68,13 +69,7 @@ def make_fake_list(self, inc):
         self.add('thing%d' % i, data)
 
 def main():
-    r = recording_data("r_file.txt")
-    l = make_fake_list(r,10)
-    l = r.get_names()
-    for i in l:
-        print i
-    print 'remove thing 8'
-    inc = r.remove('thing8')
+    r = recording_data("recordings.txt")
     l = r.get_names()
     for i in l:
         print i

@@ -1,4 +1,6 @@
 from threading import Thread
+
+import shutil
 import time, datetime
 import pygame
 import re
@@ -76,35 +78,16 @@ class Joystick:
     	## start looking for events
         self.root.parent.after(0, self.find_events)
 
-    def load_string(self,s,num,pos):
-        pos = '%3s' % (pos)
-        t = re.sub(r'^ *',"",s.get())
-        t = re.sub(r'  *'," ",t)
-        pos = re.sub(r' '," ",pos)
-        words = t.split(' ')
-        str = ""
-        for i in range(0, 4):
-        	if (i == num):
-        		x = '%3s' % pos
-        	else:
-        		x = '%3s' % words[i]
-        	x = re.sub(r' ',"0",x)
-        	str = str + x + ' '
-        str = re.sub(r' *$',"",str)
-        s.set(str)
-
     def find_events(self):
         events = pygame.event.get()
         for e in events:
             if e.type == pygame.JOYBUTTONDOWN:
                 # generate the event I've defined
                 # self.root.event_generate("<<JoyFoo>>")
-                print e.dict['button']
+                # print e.dict['button']
                 if (e.dict['button'] == 5):
-                    print "toggling"
                     self.root.toggle()
                 if (e.dict['button'] == 7):
-                    print "replaying"
                     self.root.PlayBack()
             if e.type == pygame.JOYAXISMOTION:
                 pos = e.dict['value']
@@ -114,14 +97,10 @@ class Joystick:
                     # constructs the string that reflects joystick
                     #  position
                     self.root.ServoMove(n,pos)
-                    self.load_string(self.root.servo_string,n,pos)
-                    # if we're in recording mode, save to disk
-
                     if self.root.stopwatch.running: 
                         thing = "%s %d %d" % (self.root.time_string.get(), 
                                            n, pos)
                         self.root.storage_list.append(thing)
-                        # print thing
 
         ## return to check for more events in a moment
         self.root.parent.after(20, self.find_events)
@@ -133,9 +112,14 @@ class Joystick:
 class RecordingData:
     def __init__(self, file_name):
         self.file = file_name
-        l = []
-        l = {}
-        l = pickle.load(open(self.file, "rb"))
+        try:
+            shutil.copyfile(self.file, self.file + ".bak")
+            with open(self.file) as f: pass
+            l = pickle.load(open(self.file, "rb"))
+        except IOError as e:
+            l = []
+            l = {}
+            pickle.dump(l, open(self.file, "wb"))
 
     def add(self, name, data):
         l = pickle.load(open(self.file, "rb"))
@@ -151,9 +135,9 @@ class RecordingData:
             print '%d %s' % (i, l[i]['name'])
             print l[i]['data']
 
-    def retreive(self, n):
+    def index(self, n):
         l = pickle.load(open(self.file, "rb"))
-        r = 0
+        r = -1
         for i in l:
             if n == l[i]['name']:
                 r = i
@@ -165,17 +149,26 @@ class RecordingData:
 
     def get_names(self):
         l = pickle.load(open(self.file, "rb"))
-        print self.file
-        print len(l)
         j = []
         for i in l:
             j.extend([l[i]['name']])
         return(j)
 
+    def get_data(self,name):
+        l = pickle.load(open(self.file, "rb"))
+        r = 0
+        for i in l:
+            if l[i]['name'] == name:
+                r = l[i]['data']
+                break
+        return(r)
+
     def remove(self, n):
         l = pickle.load(open(self.file, "rb"))
-        r = self.retreive(n)
-        if r:
+        print "kill " + n
+        r = self.index(n)
+        print r
+        if r != -1:
             new = {}
             count = 0
             for i in l:
@@ -184,5 +177,5 @@ class RecordingData:
                     new[count]['name'] = l[i]['name']
                     new[count]['data'] = l[i]['data']
                     count = count + 1
-        pickle.dump(new, open(self.file, "wb"))
+            pickle.dump(new, open(self.file, "wb"))
 
