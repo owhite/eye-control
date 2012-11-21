@@ -37,14 +37,14 @@ class Target:
             cv.AbsDiff(color_image, temp, difference)
             
             # Convert the image to grayscale.
-            cv.CvtColor(difference, grey_image, cv.CV_RGB2GRAY)
+            cv.hsv
+            cv.cvtColor(color_image, cv.hsv, CV_BGR2HSV);
             
-            # Convert the image to black and white.
-            cv.Threshold(grey_image, grey_image, 70, 255, cv.CV_THRESH_BINARY)
+            inRange(hsv, Scalar(0, 58, 89), Scalar(25, 173, 229), cv.bw);
             
             # Dilate and erode to get object blobs
-            cv.Dilate(grey_image, grey_image, None, 18)
-            cv.Erode(grey_image, grey_image, None, 10)
+            # cv.Dilate(grey_image, grey_image, None, 18)
+            # cv.Erode(grey_image, grey_image, None, 10)
             
             # Calculate movements
             storage = cv.CreateMemStorage(0)

@@ -24,7 +24,7 @@ class app_setup:
         try:
             self.ser = serial.Serial(usbport, 9600, timeout=1)
         except:
-            print "   did you plug something into " + usbport + "?"
+            print "   did you plug something into " + usbport + "? an eyeball for example?"
             exit()
         f = self.cp.get('Variables', 'recording_file')
 

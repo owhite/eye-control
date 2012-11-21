@@ -51,10 +51,27 @@ def merge_collided_bboxes( bbox_list ):
 	# When there are no collions between boxes, return that list:
 	return bbox_list
 
+def detect_faces( image, haar_cascade, mem_storage ):
+
+	faces = []
+	image_size = cv.GetSize( image )
+
+	faces = cv.HaarDetectObjects(image, haar_cascade, mem_storage, 1.2, 2, cv.CV_HAAR_DO_CANNY_PRUNING, ( image_size[0]/10, image_size[1]/10) )
+	
+	for face in faces:
+		box = face[0]
+		cv.Rectangle(image, ( box[0], box[1] ),
+			( box[0] + box[2], box[1] + box[3]), cv.RGB(255, 0, 0), 1, 8, 0)
 
 class Target:
 	def __init__(self):
-		self.ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)
+		try:
+			self.ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)
+			self.have_eye = 1
+		except:
+			print "   may want to plug something into /dev/ttyUSB0"
+			self.have_eye = 0
+
 		self.joymap = [1,2,3,4] # link between joystick and the servo to move
 		self.joyreverse = [0,0,0,0,0]
 
@@ -115,7 +132,7 @@ class Target:
 		t0 = time.time()
 		
 		# For toggling display:
-		image_list = [ "display", "difference", "threshold", "camera"]
+		image_list = [ "display", "difference", "threshold", "camera", "faces"]
 		image_index = 0   # Index into image_list
 	
 		# Prep for text drawing:
@@ -384,8 +401,9 @@ class Target:
 			
 			x = 50 + (center_point[0] * 80 / 320)
 			y = 20 + (center_point[1] * 80 / 240)
-			self.ServoMove(0, int(x))            
-			self.ServoMove(1, int(y))            
+			if self.have_eye:
+				self.ServoMove(0, int(x))            
+				self.ServoMove(1, int(y))            
 
 			s = '%3.0d %3.0d' % (x, y)
 			cv.PutText(display_image, str(s), text_coord, text_font, text_color )
@@ -412,6 +430,11 @@ class Target:
 			elif image_name == "difference":
 				image = difference
 				cv.PutText( image, "Difference Image", text_coord, text_font, text_color )
+			elif image_name == "faces":
+				# Do face detection
+				detect_faces( camera_image, haar_cascade, mem_storage )				
+				image = camera_image  # Re-use camera image here
+				cv.PutText( image, "Face Detection", text_coord, text_font, text_color )
 			elif image_name == "threshold":
 				# Convert the image to color.
 				cv.CvtColor( grey_image, display_image, cv.CV_GRAY2RGB )
