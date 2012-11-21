@@ -21,7 +21,11 @@ class app_setup:
         # Initialize the things
         self.LoadIniData()
         usbport = self.cp.get('Variables', 'usbport')
-        self.ser = serial.Serial(usbport, 9600, timeout=1)
+        try:
+            self.ser = serial.Serial(usbport, 9600, timeout=1)
+        except:
+            print "   did you plug something into " + usbport + "?"
+            exit()
         f = self.cp.get('Variables', 'recording_file')
 
         self.stopwatch = recorder_handlers.Stopwatch()
