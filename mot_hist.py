@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# this code was used to make:
+#  "OpenCV motion tracking with python code"
+#  https://www.youtube.com/watch?v=EADWZatXnAU&feature=plcp
+
 STORE = False # write output video?
 CAMERAID=-2 # -1 for auto, -2 for video
 OUTPUT="thing.avi"
