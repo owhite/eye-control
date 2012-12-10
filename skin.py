@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 CAMERAID=1
-HAARCASCADE="/usr/local/share/opencv/haarcascades/haarcascade_frontalface_default.xml"
+HAARCASCADE="/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml"
 MOVIE="/home/gijs/Work/uva/afstuderen/data/movie/heiligenacht.mp4"
 STORE=False
 OUTPUT="/home/gijs/testje.mp4"
@@ -13,15 +13,13 @@ FACE_BORDER = 0.2
 HUEBINS = 30
 SATBINS = 32
 
-
 import cv
 import time
 import sys
 import math
 
 def hue_histogram_as_image(hist):
-    """ Returns a nice representation of a hue histogram """
-    histimg_hsv = cv.CreateImage( (6400,480), 8, 3)
+    histimg_hsv = cv.CreateImage( (640,480), 8, 3)
 
     mybins = cv.CloneMatND(hist.bins)
     cv.Log(mybins, mybins)
@@ -47,7 +45,7 @@ class GetHands:
         cv.SetCaptureProperty( self.capture, cv.CV_CAP_PROP_FRAME_WIDTH, 640 );
         cv.SetCaptureProperty( self.capture, cv.CV_CAP_PROP_FRAME_HEIGHT, 480 );
 
-        self.hc = cv.Load( '/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml' )
+        self.hc = cv.Load(HAARCASCADE)
         self.ms = cv.CreateMemStorage()
 
         self.orig = cv.QueryFrame(self.capture)
@@ -84,6 +82,28 @@ class GetHands:
         self.th_c = cv.CreateImage(self.smallsize, cv.IPL_DEPTH_8U, 3)
         self.morphed_c = cv.CreateImage(self.smallsize, cv.IPL_DEPTH_8U, 3)
 
+        # Greyscale image, thresholded to create the motion mask:
+        self.grey_image = cv.CreateImage(self.smallsize, cv.IPL_DEPTH_8U, 1)
+		
+        # The RunningAvg() function requires a 32-bit or 64-bit image...
+        self.running_average_image = cv.CreateImage(self.smallsize, cv.IPL_DEPTH_32F, 3 )
+        # ...but the AbsDiff() function requires matching image depths:
+        self.running_average_in_display_color_depth = cv.CloneImage(self.small)
+		
+        # RAM used by FindContours():
+        self.mem_storage = cv.CreateMemStorage(0)
+        print "here"
+
+        # The difference between the running average and the current frame:
+        self.difference = cv.CloneImage(self.small)
+
+        self.target_count = 1
+        self.last_target_count = 1
+        self.last_target_change_t = 0.0
+        self.k_or_guess = 1
+        self.codebook=[]
+        self.frame_count=0
+        self.last_frame_entity_list = []
      
         # make matrix for erode/dilate
         MORPH_SIZE = 3
@@ -113,28 +133,8 @@ class GetHands:
         cv.NamedWindow('Skin Detection') 
         cv.CreateTrackbar('Threshold', 'Skin Detection', self.threshold_value, 255, self.change_threshold)
 
-    def getCam(self, id):
-        if id == -2:
-            capture = cv.CaptureFromFile(MOVIE)
-        else:
-            capture = cv.CaptureFromCAM(id)
-        print cv.GetCaptureProperty(capture, cv.CV_CAP_PROP_POS_MSEC)
-        print cv.GetCaptureProperty(capture, cv.CV_CAP_PROP_POS_FRAMES)
-        print cv.GetCaptureProperty(capture, cv.CV_CAP_PROP_POS_AVI_RATIO)
-        print cv.GetCaptureProperty(capture, cv.CV_CAP_PROP_FRAME_WIDTH)
-        print cv.GetCaptureProperty(capture, cv.CV_CAP_PROP_FRAME_HEIGHT)
-        print cv.GetCaptureProperty(capture, cv.CV_CAP_PROP_FPS)
-        print cv.GetCaptureProperty(capture, cv.CV_CAP_PROP_FOURCC)
-        print cv.GetCaptureProperty(capture, cv.CV_CAP_PROP_BRIGHTNESS)
-        print cv.GetCaptureProperty(capture, cv.CV_CAP_PROP_CONTRAST)
-        print cv.GetCaptureProperty(capture, cv.CV_CAP_PROP_SATURATION)
-        print cv.GetCaptureProperty(capture, cv.CV_CAP_PROP_HUE)
-        return capture
-
-
     def change_threshold(self, position):
         self.threshold_value = position
-
 
     def find_face(self, image):
         """ detect faces in image using haar object detector """
@@ -145,7 +145,6 @@ class GetHands:
             if n > 5:
                 return (x, y, w, h)
         return False
-
 
     def update_histogram(self, face):
         (x, y, w, h) = face
@@ -196,14 +195,11 @@ class GetHands:
         cv.Copy(self.temp, self.morphed)
         return self.morphed
 
-
     def find_contours(self, image):
         return cv.FindContours(image, self.ms, cv.CV_RETR_EXTERNAL, cv.CV_CHAIN_APPROX_SIMPLE, (0, 0))
 
-
     def draw_contours(self, image, contours):
         cv.DrawContours(self.result, contours, (0, 255, 0), (0, 255, 0), 1, 3, 3, (0, 0))
-
 
     def find_limbs(self, contours):
         """ return the 3 biggest contours """
@@ -222,6 +218,7 @@ class GetHands:
         """ render a list of images into one opencv frame """
         comb_width = self.smallwidth * XWINDOWS
         comb_height = self.smallheight * int(math.ceil(len(images) / float(XWINDOWS)))
+        print '%d %d' % (comb_height, self.smallheight)
         self.combined = cv.CreateImage((comb_width, comb_height), cv.IPL_DEPTH_8U, 3)
 
         for i,image in enumerate(images):
@@ -252,7 +249,6 @@ class GetHands:
                 counter -= 1
             cv.ShowImage('Skin Detection', self.orig )
             cv.WaitKey(40)
-
 
     def main_loop(self):
         presentation = []
@@ -304,7 +300,6 @@ class GetHands:
             self.main_loop()
             wait = max(FPS, FPS-int((time.time()-t)*1000))
             cv.WaitKey(wait)
-
 
 if __name__ == '__main__':
     g = GetHands()
