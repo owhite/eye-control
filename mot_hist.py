@@ -4,21 +4,13 @@
 #  "OpenCV motion tracking with python code"
 #  https://www.youtube.com/watch?v=EADWZatXnAU&feature=plcp
 
-STORE = False # write output video?
-CAMERAID=-2 # -1 for auto, -2 for video
-OUTPUT="thing.avi"
-FPS = 25 # target FPS
-XWINDOWS = 3 # how many windows on x axis
-WORKING_HEIGHT = 260 # size of image
-CLOCKS_PER_SEC = 1.0
-MHI_DURATION = .1 # didnt spend much time tweaking these parameters
-MAX_TIME_DELTA = 0.5
-MIN_TIME_DELTA = 0.05
-
+import os
 import cv
 import time
 import sys
 import math
+import re
+from ConfigParser import *
 
 class Source:
     def __init__(self, id, flip=True):
@@ -27,27 +19,25 @@ class Source:
     def grab_frame(self):
         self.frame = cv.QueryFrame(self.capture)
         if not self.frame:
-            print "can't grap frame, or end of movie. Bye bye."
+            print "can't grab frame"
             sys.exit(2)
         cv.Flip(self.frame, None, 1)
         return self.frame
 
 class Setup:
     def __init__(self):
-        self.source = Source(CAMERAID)
-        self.height_value = 30
-        self.jitter_value = 18
+        self.LoadIniData()
+        self.source = Source(self.cameraid)
         self.count = -1
         self.storage = cv.CreateMemStorage(0)
         self.last = 0
         self.old_center = (0,0)
-
         self.orig = self.source.grab_frame()
 
         self.width = self.orig.width
         self.height = self.orig.height
         self.size = (self.width, self.height)
-        self.smallheight = WORKING_HEIGHT
+        self.smallheight = self.working_height
         self.smallwidth = int(self.width * self.smallheight/self.height * 1.0)
         self.smallsize = (self.smallwidth, self.smallheight)
 
@@ -61,15 +51,14 @@ class Setup:
         self.mask = cv.CreateImage(self.smallsize,cv.IPL_DEPTH_8U, 1)
         self.temp = cv.CreateImage(self.smallsize, cv.IPL_DEPTH_8U, 3)
         self.buf = range(10) 
-        self.n_frames = 4
         for i in range(self.n_frames):
             self.buf[i] = cv.CreateImage(self.smallsize, cv.IPL_DEPTH_8U, 1)
             cv.SetZero(self.buf[i])
 
-        self.combined = cv.CreateImage((self.smallwidth * XWINDOWS, self.smallheight), cv.IPL_DEPTH_8U, 3)
+        self.combined = cv.CreateImage((self.smallwidth * self.xwindows, self.smallheight), cv.IPL_DEPTH_8U, 3)
 
-        if STORE:
-            self.writer = cv.CreateVideoWriter(OUTPUT, 0, 15, cv.GetSize(self.combined), 1)
+        if self.store:
+            self.writer = cv.CreateVideoWriter(self.output, 0, 15, cv.GetSize(self.combined), 1)
 
         # make window
         cv.NamedWindow("Motion Detection") 
@@ -78,11 +67,36 @@ class Setup:
 
         cv.CreateTrackbar('Jitter', 'Motion Detection', self.jitter_value, 100, self.change_jitter)
 
+    def LoadIniData(self):
+        FileName = re.sub(r'\.py$', "", os.path.abspath( __file__ )) + '.ini'
+        self.cp=ConfigParser()
+        try:
+            self.cp.readfp(open(FileName,'r'))
+	# f.close()
+        except IOError:
+            raise Exception,'NoFileError'
+
+        self.store = self.cp.getboolean('Variables', 'store')
+        self.cameraid = self.cp.getint('Variables', 'cameraid')
+        self.output = self.cp.get('Variables', 'output')
+        self.FPS = self.cp.getint('Variables', 'fps')
+        self.xwindows = self.cp.getint('Variables', 'xwindows')
+        self.working_height = self.cp.getint('Variables', 'working_height')
+        self.clocks_per_sec = self.cp.getfloat('Variables', 'clocks_per_sec')
+        self.mhi_duration = self.cp.getfloat('Variables', 'mhi_duration')
+        self.max_time_delta = self.cp.getfloat('Variables', 'max_time_delta')
+        self.min_time_delta = self.cp.getfloat('Variables', 'min_time_delta')
+        self.n_frames = self.cp.getint('Variables', 'n_frames')
+        self.height_value = self.cp.getint('Variables', 'height_value')
+        self.jitter_value = self.cp.getint('Variables', 'jitter_value')
+
+        return
+
     def process_motion(self,img):
         center = (-1, -1)
         # a lot of stuff from this section was taken from the code motempl.py, 
         #  openCV's python sample code
-        timestamp = time.clock() / CLOCKS_PER_SEC # get current time in seconds
+        timestamp = time.clock() / self.clocks_per_sec # get current time in seconds
         idx1 = self.last
         cv.CvtColor(img, self.buf[self.last], cv.CV_BGR2GRAY) # convert frame to grayscale
         idx2 = (self.last + 1) % self.n_frames 
@@ -90,13 +104,13 @@ class Setup:
         silh = self.buf[idx2]
         cv.AbsDiff(self.buf[idx1], self.buf[idx2], silh) # get difference between frames
         cv.Threshold(silh, silh, 30, 1, cv.CV_THRESH_BINARY) # and threshold it
-        cv.UpdateMotionHistory(silh, self.mhi, timestamp, MHI_DURATION) # update MHI
-        cv.ConvertScale(self.mhi, self.mask, 255./MHI_DURATION,
-                    (MHI_DURATION - timestamp)*255./MHI_DURATION)
+        cv.UpdateMotionHistory(silh, self.mhi, timestamp, self.mhi_duration) # update MHI
+        cv.ConvertScale(self.mhi, self.mask, 255./self.mhi_duration, 
+                        (self.mhi_duration - timestamp)*255./self.mhi_duration)
         cv.SetZero(img)
         cv.Merge(self.mask, None, None, None, img)
-        cv.CalcMotionGradient(self.mhi, self.mask, self.orient, MAX_TIME_DELTA, MIN_TIME_DELTA, 3)
-        seq = cv.SegmentMotion(self.mhi, self.segmask, self.storage, timestamp, MAX_TIME_DELTA)
+        cv.CalcMotionGradient(self.mhi, self.mask, self.orient, self.max_time_delta, self.min_time_delta, 3)
+        seq = cv.SegmentMotion(self.mhi, self.segmask, self.storage, timestamp, self.max_time_delta)
         inc = 0
         a_max = 0
         max_rect = -1
@@ -123,7 +137,7 @@ class Setup:
                          (comp_rect[0] + comp_rect[2], 
                           comp_rect[1] + comp_rect[3]), (0,0,255), 1)
 
-            # the goal is to report back a center of movement which is contained 
+            # the goal is to report back a center of movement contained in a rectangle
             # adjust the height based on the number generated by the slider bar
             h = int(comp_rect[1] + (comp_rect[3] * (float(self.height_value) / 100)))
             # then calculate the center
@@ -189,7 +203,7 @@ class Setup:
         combined = self.combine_images(presentation)
         cv.ShowImage('Motion detection', combined )
 
-        if STORE:
+        if self.store:
             cv.WriteFrame(self.writer, self.combined)
 
     def change_jitter(self, position):
@@ -207,8 +221,8 @@ class Setup:
                 cv.Merge(image, image, image, None, self.temp)
             else:
                 cv.Copy(image, self.temp)
-            xoffset = (i % XWINDOWS) * self.smallsize[0]
-            yoffset = (i / XWINDOWS) * self.smallsize[1]
+            xoffset = (i % self.xwindows) * self.smallsize[0]
+            yoffset = (i / self.xwindows) * self.smallsize[1]
             cv.SetImageROI(self.combined, (xoffset, yoffset, self.smallsize[0],
                 self.smallsize[1]))
             cv.Copy(self.temp, self.combined)
@@ -220,7 +234,8 @@ class Setup:
         while True:
             t = time.time()
             self.pipeline()
-            wait = max(2, (1000/FPS)-int((time.time()-t)*1000))
+            # not sure what this is about.
+            wait = max(2, (1000/self.FPS)-int((time.time()-t)*1000))
             cv.WaitKey(wait)
 
 if __name__ == '__main__':
