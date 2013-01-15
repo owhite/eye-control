@@ -1,8 +1,10 @@
 # adapted from:
 #  http://stackoverflow.com/questions/12643079/bezier-curve-fitting-with-scipy/14125828
 
+import random
 import numpy as np
 from scipy.misc import comb
+from collections import deque
 
 class Bezier(object):
     def __init__(self):
@@ -65,30 +67,80 @@ class Bezier(object):
         b.plot_line(plt, bezier)
 
 class BubbleEmit(object):
-    def __init__(self, angle=None, offsetx=None, offsety=None, length=None, num=None):
-        super(Bezier, self).__init__()
+    def __init__(self, angle=None, offsetx=None, offsety=None, length=None, num=None, bubble_size = None, steps = None):
+        super(BubbleEmit, self).__init__()
 
+    def update(self):
+        step_inc = self.length / self.steps
+        pos_inc = self.length / self.num
+        pos = 0
+        for i in range(len(self.queue)):
+            bubble = self.queue[i]
+            bubble['angle'] += (bubble['rvel'] * bubble['dir']) 
+            bubble['angle'] = bubble['angle'] % 360
+            bubble['pos'] += step_inc
+            # wrong
+            bubble['pt'] = self.get_point_on_line(self.get_point_on_axis(bubble['pos']), 
+                                                  bubble['dia'], 
+                                                  bubble['angle'])
+            if bubble['pos'] > self.length:
+                self.queue.pop(i) # retire that one
+                # put a new one on the front
+                self.queue = [self.create_bubble(pos)] + self.queue
+                pos += pos_inc
+
+    def create_bubble(self, pos):
+        dir = random.choice([-1,1])
+        dia = random.randrange(self.bubble_size / 3, self.bubble_size)
+        rvel = random.randrange(12 / 3, 12)
+        angle = random.randrange(360)
+
+        pt = self.get_point_on_line(self.get_point_on_axis(pos), dia, angle)
+
+        return({'pos':pos, 'rvel':12, 'dir':dir, 'dia':dia, 'angle':angle, 'pt':pt})
+
+    def start(self):
+        self.check()
+        inc = self.length / self.num
+        pos = 0
+        self.queue = []
+        for i in range(self.num):
+            self.queue.append(self.create_bubble(pos))
+            pos += inc
+        
     def check(self):
         self.ready = True
-        if angle==None:
+        if self.angle==None:
             print 'need an angle'
             self.ready = False
-        if offsetx==None:
+        if self.offsetx==None:
             print 'need offsetx'
             self.ready = False
-        if offsety==None:
+        if self.offsety==None:
             print 'need offsety'
             self.ready = False
-        if length==None:
+        if self.length==None:
             print 'need length'
             self.ready = False
-        if num==None:
+        if self.num==None:
             print 'need num'
             self.ready = False
+        if self.bubble_size==None:
+            print 'need bubble_size'
+            self.ready = False
+        if self.steps==None:
+            print 'need steps'
+            self.ready = False
         
-    def travel(self):
-        inc = self.length / self.num
-        # see http://docs.python.org/2/library/collections.html#collections.deque
+    def get_point_on_line(self, pt, l, angle):
+        (x, y) = pt
+        x = x + (l * np.cos(np.radians(angle))) 
+        y = y + (l * np.sin(np.radians(angle))) 
+        return x, y
+
+    def get_point_on_axis(self, l):
+        return self.get_point_on_line((self.offsetx, self.offsety), l, self.angle)
+
 
 if __name__ == '__main__':
 
@@ -101,14 +153,36 @@ if __name__ == '__main__':
 
     b.plot_bezier_and_points(plt, points)
 
-    offsetx = 10
-    offsety = 10
-    linelength = 200
-    angle = 20
+    be = BubbleEmit()
 
-    x = [offsetx, offsetx+(linelength*np.cos(np.radians(angle)))]
-    y = [offsety, offsety+(linelength*np.sin(np.radians(angle)))]
-    plt.plot(x, y, '-')
+    be.offsetx = 10
+    be.offsety = 10
+    be.length = 200
+    be.angle = 20
+    be.bubble_size = 40
+    be.num = 20
+    be.steps = int(be.length / 120)
+
+    be.start()
+    be.update()
+
+    pt = be.get_point_on_axis(be.length)
+
+    xpts = [be.offsetx, pt[0]]
+    ypts = [be.offsety, pt[1]]
+    plt.plot(xpts, ypts, '-')
+
+    l = []
+    for bubble in be.queue:
+        pt1 = be.get_point_on_axis(bubble['pos'])
+        pt2 = bubble['pt']
+        xpts = [pt1[0], pt2[0]]
+        ypts = [pt1[1], pt2[1]]
+        # plt.plot(xpts, ypts)
+        l.append(pt2[0])
+        l.append(pt2[1])
+
+    b.plot_bezier_and_points(plt, l)
 
     plt.xlim(0, 200)
     plt.ylim(0, 200)
