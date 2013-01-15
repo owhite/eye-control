@@ -8,10 +8,12 @@ import pyglet.image
 import Image
 import random
 import sys
+from ConfigParser import *
 
 class Video(object):
     def __init__(self):
         super(Video, self).__init__()
+        self.LoadIniData()
         cameraid = 0
         self.capture = cv.CaptureFromCAM(cameraid)
         if not self.capture:
@@ -21,6 +23,7 @@ class Video(object):
         self.frame = cv.QueryFrame (self.capture)
         self.raw_video_image = cv.CreateImage(cv.GetSize(self.frame), 8, 3)
         (self.width, self.height) = cv.GetSize(self.frame)
+
         
     def get_video(self):
         self.raw_video_image = cv.QueryFrame (self.capture)
@@ -30,6 +33,31 @@ class Video(object):
                                              self.raw_video_image.tostring()) 
         return video_image
     
+    def LoadIniData(self, FileName):
+        self.cp=ConfigParser()
+        try:
+            self.cp.readfp(open(FileName,'r'))
+	# f.close()
+        except IOError:
+            raise Exception,'NoFileError'
+
+        self.store = self.cp.getboolean('Variables', 'store')
+        self.cameraid = self.cp.getint('Variables', 'cameraid')
+        self.output = self.cp.get('Variables', 'output')
+        self.FPS = self.cp.getint('Variables', 'fps')
+        self.xwindows = self.cp.getint('Variables', 'xwindows')
+        self.working_height = self.cp.getint('Variables', 'working_height')
+        self.clocks_per_sec = self.cp.getfloat('Variables', 'clocks_per_sec')
+        self.mhi_duration = self.cp.getfloat('Variables', 'mhi_duration')
+        self.max_time_delta = self.cp.getfloat('Variables', 'max_time_delta')
+        self.min_time_delta = self.cp.getfloat('Variables', 'min_time_delta')
+        self.n_frames = self.cp.getint('Variables', 'n_frames')
+        self.height_value = self.cp.getint('Variables', 'height_value')
+        self.jitter_value = self.cp.getint('Variables', 'jitter_value')
+
+        return
+
+
 if __name__ == '__main__':
     cv.NamedWindow("Depth")
 
@@ -59,8 +87,8 @@ if __name__ == '__main__':
 
     vertices = [
         200, 200,
-        400, 400,
-        0, 200]
+        300, 400,
+        100, 400]
     vertices_gl = (GLfloat * len(vertices))(*vertices)
 
     glEnableClientState(GL_VERTEX_ARRAY)
@@ -68,11 +96,7 @@ if __name__ == '__main__':
 
     @window.event
     def on_draw():
-
         window.clear()
-
-        glClear(GL_COLOR_BUFFER_BIT)
-        glLoadIdentity()
 
         video_sprite.image = video
         video_sprite.draw()

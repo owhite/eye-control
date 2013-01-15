@@ -63,7 +63,6 @@ if __name__ == '__main__':
     # split_pairs is a utility to convert to plt.plot's funky format
     xpoints, ypoints = b.split_pairs(points) 
     xvals, yvals = b.split_pairs(bezier)
-    
 
     plt.plot(xvals, yvals)
 
