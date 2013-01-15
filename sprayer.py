@@ -79,7 +79,6 @@ class BubbleEmit(object):
             bubble['angle'] += (bubble['rvel'] * bubble['dir']) 
             bubble['angle'] = bubble['angle'] % 360
             bubble['pos'] += step_inc
-            # wrong
             bubble['pt'] = self.get_point_on_line(self.get_point_on_axis(bubble['pos']), 
                                                   bubble['dia'], 
                                                   bubble['angle'])
@@ -93,7 +92,7 @@ class BubbleEmit(object):
         dir = random.choice([-1,1])
         dia = random.randrange(self.bubble_size / 3, self.bubble_size)
         rvel = random.randrange(12 / 3, 12)
-        angle = random.randrange(360)
+        angle = random.randrange(60,120) * dir
 
         pt = self.get_point_on_line(self.get_point_on_axis(pos), dia, angle)
 
@@ -149,22 +148,18 @@ if __name__ == '__main__':
 
     b = Bezier()
 
-    points = [155, 4, 57, 138, 25, 81, 21, 184]
-
-    b.plot_bezier_and_points(plt, points)
-
     be = BubbleEmit()
 
     be.offsetx = 10
     be.offsety = 10
     be.length = 200
     be.angle = 20
-    be.bubble_size = 40
-    be.num = 20
+    be.bubble_size = 100
+    be.num = 10
     be.steps = int(be.length / 120)
 
     be.start()
-    be.update()
+    # be.update()
 
     pt = be.get_point_on_axis(be.length)
 
@@ -178,13 +173,13 @@ if __name__ == '__main__':
         pt2 = bubble['pt']
         xpts = [pt1[0], pt2[0]]
         ypts = [pt1[1], pt2[1]]
-        # plt.plot(xpts, ypts)
+        plt.plot(xpts, ypts)
         l.append(pt2[0])
         l.append(pt2[1])
 
     b.plot_bezier_and_points(plt, l)
 
-    plt.xlim(0, 200)
-    plt.ylim(0, 200)
+    plt.xlim(-50, 250)
+    plt.ylim(-50, 250)
     plt.show()
 
