@@ -100,8 +100,8 @@ class BubbleEmit(object):
 
     def start(self):
         self.check()
-        inc = self.length / self.num
-        pos = 0
+        inc = self.length / (self.num + 1)
+        pos = inc
         self.queue = []
         for i in range(self.num):
             self.queue.append(self.create_bubble(pos))
@@ -153,13 +153,13 @@ if __name__ == '__main__':
     be.offsetx = 10
     be.offsety = 10
     be.length = 200
-    be.angle = 20
-    be.bubble_size = 100
-    be.num = 10
-    be.steps = int(be.length / 120)
+    be.angle = 45
+    be.bubble_size = 60
+    be.num = 5
+    be.steps = 200
 
     be.start()
-    # be.update()
+    be.update()
 
     pt = be.get_point_on_axis(be.length)
 
@@ -168,6 +168,8 @@ if __name__ == '__main__':
     plt.plot(xpts, ypts, '-')
 
     l = []
+    l.append(be.offsetx)
+    l.append(be.offsety)
     for bubble in be.queue:
         pt1 = be.get_point_on_axis(bubble['pos'])
         pt2 = bubble['pt']
@@ -177,7 +179,11 @@ if __name__ == '__main__':
         l.append(pt2[0])
         l.append(pt2[1])
 
+    l.append(pt[0])
+    l.append(pt[1])
+
     b.plot_bezier_and_points(plt, l)
+    # this sucks. See: http://docs.scipy.org/doc/numpy/reference/generated/numpy.polyfit.html
 
     plt.xlim(-50, 250)
     plt.ylim(-50, 250)
