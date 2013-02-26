@@ -53,7 +53,7 @@ def getpositions(im):
 				temp=2	
 	return (leftmost,rightmost,topmost,bottommost)
 	
-capture=cv.CaptureFromCAM(0)
+capture=cv.CaptureFromCAM(1)
 frame=cv.QueryFrame(capture)
 test=cv.CreateImage(cv.GetSize(frame),8,3)
 
@@ -70,8 +70,7 @@ while(1):
 	cv.PutText(frame, hsv_string, (5, 80), font, (30, 200, 200))
 
 	cv.ShowImage("pick",frame)
-	cv.WaitKey(33)
-	if evente==7:
+	if cv.WaitKey(10) == 27: 
             break
 
 cv.DestroyWindow("pick")
