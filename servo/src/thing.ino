@@ -9,7 +9,6 @@ Servo servos[4] = {s1, s2, s3, s4};
 
 int ON = 0;
 int OFF = 1;
-int STARTING = 3;
 int servoRoutineState = OFF;
 int servoRoutineCounter = 0;
 int servoRoutineMax = 0;
@@ -21,70 +20,84 @@ int servoVal;
 int servoNum;
 unsigned long servoTimeDelay; 
 
-int sensitivity = 14; // may need to change if there are delays in loop()
+int sensitivity = 30; // may need to change if there are delays in loop()
 int sensorValue;
+int pirValue;
 int previousValue;
 
 int LEDPin = 13;
+int pirPin = 11;
 int sensorPin = A1;
+
+int move_counter = 0;
 
 unsigned long resetInterval = 1000;
 unsigned long previousMillis = 0;
 unsigned long currentMillis = 0;
 
-void startServoRoutine(int num) {
+void stopServoRoutine() {
+  servos[0].detach();
+  servos[1].detach();
+  servos[2].detach();
+  servos[3].detach();
+  servoRoutineState = OFF;
+  delay(2000); // let things settle
+  sensorValue = analogRead(sensorPin);
+  previousValue = sensorValue + 500;
+  move_counter = 0;
+  digitalWrite(LEDPin, LOW); 
+}
+
+void startServoRoutine() {
   digitalWrite(LEDPin, HIGH); 
-  if (num < servoRoutineMax) {
-    Serial.println("running");
-    servoRoutineCounter = 0;
-    servoIndexStart = servoArrayLengths[num * 2];
-    servoIndexStop = servoArrayLengths[num * 2 + 1];
-    servoRoutineState = ON;
-  }
-  else {
-    servoRoutineNum = 0;
-  }
+  servoRoutineNum = servoRoutineNum % servoRoutineMax;
+  servos[0].attach(7);
+  servos[1].attach(8);
+  servos[2].attach(9);
+  servos[3].attach(10);
+
+  servoRoutineCounter = 0;
+  servoIndexStart = servoArrayLengths[servoRoutineNum * 2];
+  servoIndexStop = servoArrayLengths[servoRoutineNum * 2 + 1];
+  servoRoutineState = ON;
+
   servoRoutineNum += 1;
 }
 
 void setup() {
   Serial.begin(115200);
   pinMode(LEDPin, OUTPUT);
+  pinMode(pirPin, INPUT_PULLUP);
 
   servoRoutineMax = sizeof(servoArrayLengths) / 4; // why 4, why not 2? 
-  servos[0].attach(7);
-  servos[1].attach(8);
-  servos[2].attach(9);
-  servos[3].attach(10);
 
   delay(2000);
 
   servoRoutineState = OFF;
   sensorValue = analogRead(sensorPin);
-  previousValue = sensorValue;
+  previousValue = sensorValue + 500;
 }
 
 void loop() {
   if (servoRoutineState == OFF) {
-    // dont enter while the servos are running :-)
+    // Serial.println("SAMPLING");
+    // dont take readings while servos are running
     sensorValue = analogRead(sensorPin);
-    if (previousValue - sensorValue > sensitivity) {
-      servoRoutineState = STARTING;
+    if (sensorValue - previousValue > sensitivity) {
+      char str[16];
+      sprintf(str, "BUMP %d %d", sensorValue, previousValue);
+      Serial.println(str);
+      startServoRoutine();
     }
     previousValue = sensorValue;
-  }
-  else if (servoRoutineState == STARTING) {
-    startServoRoutine(servoRoutineNum);
+    if (digitalRead(pirPin) == LOW) {
+      move_counter++;
+      Serial.println(move_counter);
+    }
   }
   else if (servoRoutineState == ON) {
     if (servoRoutineCounter + servoIndexStart > servoIndexStop) {
-      // stop servo routine
-      Serial.println("going off");
-      digitalWrite(LEDPin, LOW); 
-      delay(2000);
-      sensorValue = analogRead(sensorPin);
-      previousValue = sensorValue;
-      servoRoutineState = OFF;
+      stopServoRoutine();
     }
     else {
       char str[16];
