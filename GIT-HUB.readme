@@ -1,0 +1,11 @@
+This is how I took a "non-github" directory, and put all the files from it into a new push into the github:
+
+git clone https://github.com/owhite/eye-control
+cd eye-control/
+git rm -r *
+cp -r /Users/owhite/teensy/eye_control/* .
+git status -s
+git add *
+git status -s
+git commit -m 'simplified code, recording with gamepad, and motion detector'
+git push origin master
