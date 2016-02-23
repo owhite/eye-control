@@ -1,0 +1,98 @@
+#include <Servo.h>
+#include "servo_data.h"
+
+Servo s1;
+Servo s2;
+Servo s3;
+Servo s4;
+Servo servos[4] = {s1, s2, s3, s4};
+
+int ON = 0;
+int OFF = 1;
+int STARTING = 3;
+int servoRoutineState = OFF;
+int servoRoutineCounter = 0;
+int servoRoutineMax = sizeof(servoArrayLengths) / 2;
+int servoIndexStart = 0;
+int servoIndexStop = 0;
+int servoRoutineNum = 0;
+
+int servoVal;
+int servoNum;
+unsigned long servoTimeDelay; 
+
+int sensitivity = 15; // may need to change if there are delays in loop()
+int sensorValue;
+int previousValue;
+
+int LEDPin = 13;
+int sensorPin = A1;
+
+unsigned long resetInterval = 1000;
+unsigned long previousMillis = 0;
+unsigned long currentMillis = 0;
+
+void startServoRoutine(int num) {
+  if (num < servoRoutineMax) {
+    servoRoutineCounter = 0;
+    servoRoutineState = ON;
+    servoIndexStart = servoArrayLengths[num * 2];
+    servoIndexStop = servoArrayLengths[num * 2 + 1];
+  }
+  else {
+    servoRoutineState = OFF;
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(LEDPin, OUTPUT);
+
+  servos[0].attach(7);
+  servos[1].attach(8);
+  servos[2].attach(9);
+  servos[3].attach(10);
+
+  delay(1000);
+  previousValue = analogRead(sensorPin);
+}
+
+void loop() {
+  sensorValue = analogRead(sensorPin);
+  if (previousValue - sensorValue > sensitivity) {
+    previousMillis = millis();
+  }
+  previousValue = sensorValue;
+  currentMillis = millis();
+  if ((currentMillis - previousMillis) <= resetInterval) {
+    digitalWrite(LEDPin, HIGH); 
+    if (servoRoutineState == OFF) {
+      servoRoutineState = STARTING;
+    }
+  }
+  else {
+    digitalWrite(LEDPin, LOW); 
+  }
+
+  if (servoRoutineState == STARTING) {
+    servoRoutineNum = 1;
+    startServoRoutine(servoRoutineNum);
+  }
+  if (servoRoutineState == ON) {
+    if (servoRoutineCounter + servoIndexStart > servoIndexStop) {
+      servoRoutineState = OFF;
+      delay(2000);
+    }
+    else {
+      char str[16];
+      servoTimeDelay = (unsigned long) servoArray[servoRoutineCounter + servoIndexStart];
+      servoNum = servoArray[servoRoutineCounter + servoIndexStart + 1];
+      servoVal = servoArray[servoRoutineCounter + servoIndexStart + 2];
+      sprintf(str, "%d %d %d", servoTimeDelay, servoNum, servoVal);
+      servos[servoNum].write(servoVal);
+      delay(servoTimeDelay);
+    }
+    servoRoutineCounter+=3;
+  }
+}
+

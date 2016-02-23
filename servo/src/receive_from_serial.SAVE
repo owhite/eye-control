@@ -1,0 +1,64 @@
+#include <Servo.h>
+
+Servo servo1; 
+Servo servo2; 
+Servo servo3; 
+Servo servo4; 
+
+int incomingByte = 0;
+
+int LEDPin = 13;
+
+String message;
+String s1;
+String s2;
+
+int servoVal;
+int servoNum;
+
+unsigned long resetInterval = 1000;
+unsigned long previousMillis = 0;
+unsigned long currentMillis = 0;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(LEDPin, OUTPUT);
+  servo1.attach(7);
+  servo2.attach(8);
+  servo3.attach(9);
+  servo4.attach(10);
+
+  delay(1000);
+}
+
+void loop() {
+  message = "";
+  while (Serial.available()) {
+      char c = Serial.read();
+      message += c; 
+  } 
+  if(message.length() > 0) {
+    int commaIndex = message.indexOf(' ');
+    String s1 = message.substring(0, commaIndex);
+    String s2 = message.substring(commaIndex+1); 
+    servoNum = s1.toInt();
+    servoVal = s2.toInt();
+    previousMillis = millis();
+    if (servoNum == 1)  {
+      servo1.write(servoVal);
+    }
+    if (servoNum == 2)  {
+      servo2.write(servoVal);
+    }
+    if (servoNum == 3)  {
+      servo3.write(servoVal);
+    }
+    if (servoNum == 4)  {
+      servo4.write(servoVal);
+    }
+    digitalWrite(LEDPin, HIGH); 
+  }
+  else {
+    digitalWrite(LEDPin, LOW); 
+  }
+}

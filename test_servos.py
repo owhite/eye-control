@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# to supress noise on the command line
+#  defaults write org.python.python ApplePersistenceIgnoreState NO
+
 import os
 import re
 import sys
@@ -18,14 +21,21 @@ from Tkinter import *
 # Handles the layout of the root window and lots of other stuff
 class app_setup:
     def __init__(self, root):
-        self.root = root
-        root.wm_title("Eye Control")
-        # root.config(background = "#FFFFFF")
 
         self.LoadIniData()
-        f = self.cp.get('Variables', 'recording_file')
+        self.serial_exists = 0
+        usbport = self.cp.get('Variables', 'usbport')
+        try:
+            self.serial = serial.Serial(usbport, 115200)
+            self.serial_exists = 1
+        except:
+            print "   did you plug something into " + usbport + "? an eyeball for example?"
+
+        self.root = root
+        root.wm_title("Eye Control")
 
         self.stopwatch = Stopwatch()
+        f = self.cp.get('Variables', 'recording_file')
         self.rdata = RecordingData(f)
 
         self.canvasWidth = 300
@@ -166,7 +176,7 @@ class app_setup:
                 pos = int(90 + round(pos * 90, 0))
                 n = e.dict['axis']
                 if (n >= 0 and n < 5):
-                    self.JoystickUpdate(n,pos)
+                    self.JoystickUpdate(n, pos)
                     if self.stopwatch.running: 
                         thing = "%s %d %d" % (self.time_string.get(), n, pos)
                         self.storage_list.append(thing)
@@ -328,28 +338,40 @@ class app_setup:
             counter = 0
             for i in range(0,len(bits)):
                 servo, angle = bits[i]['pos_str'].split()
+                servo = int(servo)
+                angle = int(angle)
                 counter = counter + bits[i]['delta']
                 self.DisplayCounter(counter)
                 time.sleep(bits[i]['delta'])
-                # self.ServoMove(int(servo), int(angle))
+                self.servo_position[servo] = angle
+                self.updateCanvas()
+                self.root.update_idletasks()
+                if (self.serial_exists):
+                    self.serial.write("%d %d" % (servo+1, angle))
 
     def DisplayCounter(self,t): 
         t = str(t)
         (seconds, mseconds) = t.split('.')
         self.time_string.set("%02i:%06i" % (int(seconds), int(mseconds)))
         
-    def JoystickUpdate(self, pos, value):
-        self.joystick_position[pos] = value
+    def JoystickUpdate(self, num, pos):
+        self.joystick_position[num] = pos
+        if (self.joystick_position[1] < self.joystick_position[0]):
+            self.joystick_position[1] = self.joystick_position[0]
         self.mapServoPositions()
         self.updateCanvas()
         self.LoadStringServo()
         self.LoadStringJoystick()
+        # pump result to servo
+        if (self.serial_exists):
+            self.serial.write("%d %d" % (num+1, self.servo_position[num]))
 
     def mapServoPositions(self):
-        self.servo_position[0] = self.joystick_position[0] - 90
-        self.servo_position[1] = self.joystick_position[1] - 90
-        self.servo_position[2] = self.joystick_position[2] - 90
-        self.servo_position[3] = self.joystick_position[3] - 90
+        # no mapping was really needed
+        self.servo_position[0] = self.joystick_position[0]
+        self.servo_position[1] = self.joystick_position[1]
+        self.servo_position[2] = self.joystick_position[2]
+        self.servo_position[3] = self.joystick_position[3]
 
     def updateCanvas(self):
         self.updateLidTop()
@@ -357,23 +379,39 @@ class app_setup:
         self.updateIris()
 
     def updateLidTop(self):
-        new = self.servo_position[0]
+        new = self.servo_position[0] - 90
         (x, y) = self.lidTopPosition
         self.lidTopPosition = (x, new)
         self.canvas.move(self.lidTop, 0, new - y)
 
     def updateLidBottom(self):
-        new = self.servo_position[1]
+        new = self.servo_position[1] - 90
         (x, y) = self.lidBottomPosition
         self.lidBottomPosition = (x, new)
         self.canvas.move(self.lidBottom, 0, new - y)
 
     def updateIris(self):
-        newX = self.servo_position[2]
-        newY = self.servo_position[3]
+        newX = (180 - self.servo_position[2]) - 90
+        newY = self.servo_position[3] - 90
         (x, y) = self.irisPosition
         self.irisPosition = (newX, newY)
         self.canvas.move(self.iris, newX - x, newY - y)
+
+    def ServoCenter(self):
+        self.ServoSlowMove(90,90,90,90,40)
+
+    def ServoSlowMove(self, a2, b2, c2, d2, inc):
+        (a1, b1, c1, d1) = self.servo_position
+        i1 = float(a2 - a1) / inc
+        i2 = float(b2 - b1) / inc
+        i3 = float(c2 - c1) / inc
+        i4 = float(d2 - d1) / inc
+        for i in range(0, inc):
+            self.servo_position[0] = int(float(a1) + i1)
+            self.servo_position[1] = int(float(b1) + i2)
+            self.servo_position[2] = int(float(c1) + i3)
+            self.servo_position[3] = int(float(d1) + i4)
+            self.updateCanvas()
 
     def LoadStringServo(self):
         s1 = re.sub(r' ', '0','%3d' % self.servo_position[0])
