@@ -1,3 +1,4 @@
+![alt tag](http://i.imgur.com/hB5c3m5.jpg)
 
 Arduino driven [robotic eyeball](http://i.imgur.com/hB5c3m5.jpg). 
 
