@@ -354,13 +354,8 @@ bool Servo::attached()
 #define usToTicks(us)    ((us) * (F_BUS / 1000) / PDB_PRESCALE / 1000)
 #define ticksToUs(ticks) ((ticks) * PDB_PRESCALE * 1000 / (F_BUS / 1000))
 
-#if SERVOS_PER_TIMER <= 16
 static uint16_t servo_active_mask = 0;
 static uint16_t servo_allocated_mask = 0;
-#else
-static uint32_t servo_active_mask = 0;
-static uint32_t servo_allocated_mask = 0;
-#endif
 static uint8_t servo_pin[MAX_SERVOS];
 static uint16_t servo_ticks[MAX_SERVOS];
 
@@ -522,13 +517,8 @@ extern "C" void pdb_isr(void)
 #define usToTicks(us)    ((us) * 8)
 #define ticksToUs(ticks) ((ticks) / 8)
 
-#if SERVOS_PER_TIMER <= 16
 static uint16_t servo_active_mask = 0;
 static uint16_t servo_allocated_mask = 0;
-#else
-static uint32_t servo_active_mask = 0;
-static uint32_t servo_allocated_mask = 0;
-#endif
 static uint8_t servo_pin[MAX_SERVOS];
 static uint16_t servo_ticks[MAX_SERVOS];
 

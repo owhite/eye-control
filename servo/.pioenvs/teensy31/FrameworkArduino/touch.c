@@ -47,18 +47,6 @@ static const uint8_t pin2tsi[] = {
 255, 255,  11,   5
 };
 
-#elif defined(__MK66FX1M0__)
-#define CURRENT   2
-#define NSCAN     9
-#define PRESCALE  2
-static const uint8_t pin2tsi[] = {
-//0    1    2    3    4    5    6    7    8    9
-  9,  10, 255, 255, 255, 255, 255, 255, 255, 255,
-255, 255, 255, 255, 255,  13,   0,   6,   8,   7,
-255, 255,  14,  15, 255, 255, 255, 255, 255,  11,
- 12, 255, 255, 255, 255, 255, 255, 255, 255, 255
-};
-
 #elif defined(__MKL26Z64__)
 #define NSCAN     9
 #define PRESCALE  2

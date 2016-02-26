@@ -183,9 +183,7 @@ size_t Print::printNumberDec(unsigned long n, uint8_t sign)
 
         p = buf + (sizeof(buf));
         do {
-		uint32_t div;
-		divmod10_v2(n, &div, &digit);
-		n = div;
+		divmod10_v2(n, &n, &digit);
 		//divmod10_asm(n, digit, t1, t2, c3333);
                 *--p = digit + '0';
         } while (n);
@@ -297,7 +295,7 @@ size_t Print::printFloat(double number, uint8_t digits)
 
 	// Print the decimal point, but only if there are digits beyond
 	if (digits > 0) {
-		uint8_t n, buf[16], count=1;
+		uint8_t n, buf[8], count=1;
 		buf[0] = '.';
 
 		// Extract digits from the remainder one at a time

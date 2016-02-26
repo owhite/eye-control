@@ -20,7 +20,7 @@ int servoVal;
 int servoNum;
 unsigned long servoTimeDelay; 
 
-int sensitivity = 30; // may need to change if there are delays in loop()
+int sensitivity = 25; // may need to change if there are delays in loop()
 int sensorValue;
 int pirValue;
 int previousValue;
@@ -67,7 +67,7 @@ void startServoRoutine() {
 void setup() {
   Serial.begin(115200);
   pinMode(LEDPin, OUTPUT);
-  pinMode(pirPin, INPUT_PULLUP);
+  pinMode(pirPin, INPUT);
 
   servoRoutineMax = sizeof(servoArrayLengths) / 4; // why 4, why not 2? 
 
@@ -84,15 +84,14 @@ void loop() {
     // dont take readings while servos are running
     sensorValue = analogRead(sensorPin);
     if (sensorValue - previousValue > sensitivity) {
-      char str[16];
-      sprintf(str, "BUMP %d %d", sensorValue, previousValue);
-      Serial.println(str);
+      //      char str[16];
+      // sprintf(str, "BUMP %d %d", sensorValue, previousValue);
+      // Serial.println(str);
       startServoRoutine();
     }
     previousValue = sensorValue;
-    if (digitalRead(pirPin) == LOW) {
-      move_counter++;
-      Serial.println(move_counter);
+    if (digitalRead(pirPin) == HIGH) {
+      startServoRoutine();
     }
   }
   else if (servoRoutineState == ON) {
