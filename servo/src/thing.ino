@@ -27,6 +27,7 @@ int previousValue;
 
 int LEDPin = 13;
 int pirPin = 11;
+int switchPin = 6;
 int sensorPin = A1;
 
 int move_counter = 0;
@@ -68,6 +69,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(LEDPin, OUTPUT);
   pinMode(pirPin, INPUT);
+  pinMode(switchPin, INPUT);
 
   servoRoutineMax = sizeof(servoArrayLengths) / 4; // why 4, why not 2? 
 
@@ -79,6 +81,12 @@ void setup() {
 }
 
 void loop() {
+  if (digitalRead(switchPin) == HIGH) {
+    digitalWrite(LEDPin, HIGH); 
+  }
+  else {
+    digitalWrite(LEDPin, LOW); 
+  }
   if (servoRoutineState == OFF) {
     // Serial.println("SAMPLING");
     // dont take readings while servos are running
