@@ -7,6 +7,8 @@ Servo s3;
 Servo s4;
 Servo servos[4] = {s1, s2, s3, s4};
 
+int bigEyeRoutine = 8;
+
 int ON = 0;
 int OFF = 1;
 int servoRoutineState = OFF;
@@ -82,10 +84,9 @@ void setup() {
 
 void loop() {
   if (digitalRead(switchPin) == HIGH) {
-    digitalWrite(LEDPin, HIGH); 
-  }
-  else {
-    digitalWrite(LEDPin, LOW); 
+    servoRoutineCounter = bigEyeRoutine;
+    servoRoutineNum = bigEyeRoutine;
+    startServoRoutine();
   }
   if (servoRoutineState == OFF) {
     // Serial.println("SAMPLING");
